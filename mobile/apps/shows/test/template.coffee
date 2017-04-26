@@ -1,36 +1,41 @@
 _ = require 'underscore'
-benv = require 'benv'
+jade = require 'jade'
+fs = require 'fs'
+cheerio = require 'cheerio'
 moment = require 'moment'
 { resolve } = require 'path'
 { fabricate } = require 'antigravity'
 Show = require '../../../models/show'
-{Cities, FeaturedCities} = require 'places'
+{ Cities, FeaturedCities } = require 'places'
+
+render = (templateName) ->
+  filename = resolve __dirname, "../templates/#{templateName}.jade"
+  jade.compile(
+    fs.readFileSync(filename),
+    { filename: filename }
+  )
 
 describe 'Shows template', ->
-  before (done) ->
-    benv.setup =>
-      benv.expose $: benv.require 'jquery'
-      done()
-
   describe '#index with cities and featured show', ->
-    before ->
-      benv.render resolve(__dirname, '../templates/index.jade'),
+    xit 'renders correctly', ->
+      html = render('../templates/index')
         sd: {}
         cities: Cities
         featuredCities: FeaturedCities
         featuredShow: new Show fabricate 'show'
 
-    xit 'renders correctly', ->
-      $('.shows-header').length.should.equal 1
-      $('.shows-page-featured-cities a').length.should.equal 11
+      @$ = cheerio.load(html)
+
+      @$('.shows-header').length.should.equal 1
+      @$('.shows-page-featured-cities a').length.should.equal 11
 
   describe '#cities with single city and shows', ->
-    before ->
+    it 'renders correctly', ->
       @currentShow = new Show fabricate 'show', status: 'running', id: 'running-show', name: 'running-show'
       @upcomingShow = new Show fabricate 'show', status: 'upcoming', id: 'upcoming-show', name: 'upcoming-show'
       @pastShow = new Show fabricate 'show', status: 'closed', id: 'closed-show', name: 'closed-show'
 
-      benv.render resolve(__dirname, '../templates/city.jade'),
+      html = render('../templates/city')
         sd: {}
         city: {name: 'New York'}
         opening: []
@@ -38,19 +43,15 @@ describe 'Shows template', ->
         current: [@currentShow]
         past: [@pastShow]
 
-    it 'renders correctly', ->
-      $('.shows-city--current-shows').length.should.equal 1
-      $('.shows-city--upcoming-shows').length.should.equal 1
-      $('.shows-city--past-shows').length.should.equal 1
+      html.should.containEql 'shows-city--current-shows'
+      html.should.containEql 'shows-city--upcoming-shows'
+      html.should.containEql 'shows-city--past-shows'
 
   describe '#all-cities with every city', ->
-    before ->
-      benv.render resolve(__dirname, '../templates/all_cities.jade'),
+    it 'renders correctly', ->
+      html = render('../templates/all_cities')
         sd: {}
         cities: Cities
 
-    after ->
-      benv.teardown()
-
-    it 'renders correctly', ->
-      $('.all-cities-page-all-cities a').length.should.be.above 83
+      @$ = cheerio.load(html)
+      @$('.all-cities-page-all-cities a').length.should.be.above 83
